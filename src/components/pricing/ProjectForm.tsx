@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -10,13 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Project, ProjectMaterial } from "@/types/inventory";
 import { Material } from "@/types/inventory";
 
@@ -28,20 +21,13 @@ interface ProjectFormProps {
   initialData?: Project | null;
 }
 
-const emptyProject = {
-  name: "",
-  description: "",
-  laborCost: 0,
-  markup: 50,
-  materials: [] as ProjectMaterial[],
-};
-
 export function ProjectForm({ open, onOpenChange, onSubmit, materials, initialData }: ProjectFormProps) {
   const [projectName, setProjectName] = useState("");
   const [description, setDescription] = useState("");
   const [laborCost, setLaborCost] = useState(0);
   const [markup, setMarkup] = useState(50);
-  const [selectedMaterials, setSelectedMaterials] = useState<ProjectMaterial[]>([]);
+  // Use a map for quantity tracking: materialId -> quantity
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
 
   // Reset form when dialog opens or initialData changes
   useEffect(() => {
@@ -51,43 +37,47 @@ export function ProjectForm({ open, onOpenChange, onSubmit, materials, initialDa
         setDescription(initialData.description || "");
         setLaborCost(initialData.laborCost);
         setMarkup(initialData.markup);
-        setSelectedMaterials(initialData.materials);
+        const qtyMap: Record<string, number> = {};
+        initialData.materials.forEach((pm) => {
+          qtyMap[pm.materialId] = pm.quantity;
+        });
+        setQuantities(qtyMap);
       } else {
         setProjectName("");
         setDescription("");
         setLaborCost(0);
         setMarkup(50);
-        setSelectedMaterials([]);
+        setQuantities({});
       }
     }
   }, [open, initialData]);
 
-  const addMaterialToProject = (material: Material, quantity: number) => {
-    const existing = selectedMaterials.find((pm) => pm.materialId === material.id);
-    if (existing) {
-      setSelectedMaterials((prev) =>
-        prev.map((pm) =>
-          pm.materialId === material.id
-            ? { ...pm, quantity: pm.quantity + quantity, totalCost: (pm.quantity + quantity) * material.unitPrice }
-            : pm
-        )
-      );
-    } else {
-      setSelectedMaterials((prev) => [
-        ...prev,
-        {
-          materialId: material.id,
-          materialName: material.name,
-          quantity,
-          unitPrice: material.unitPrice,
-          totalCost: quantity * material.unitPrice,
-        },
-      ]);
-    }
-  };
+  // Build selected materials from quantities map
+  const getSelectedMaterials = useCallback((): ProjectMaterial[] => {
+    return Object.entries(quantities)
+      .filter(([_, qty]) => qty > 0)
+      .map(([materialId, qty]) => {
+        const material = materials.find((m) => m.id === materialId);
+        return {
+          materialId,
+          materialName: material?.name || "Unknown",
+          quantity: qty,
+          unitPrice: material?.unitPrice || 0,
+          totalCost: qty * (material?.unitPrice || 0),
+        };
+      });
+  }, [quantities, materials]);
 
-  const removeMaterial = (materialId: string) => {
-    setSelectedMaterials((prev) => prev.filter((pm) => pm.materialId !== materialId));
+  const handleQuantityChange = (materialId: string, value: string) => {
+    const qty = parseInt(value) || 0;
+    setQuantities((prev) => {
+      if (qty <= 0) {
+        const next = { ...prev };
+        delete next[materialId];
+        return next;
+      }
+      return { ...prev, [materialId]: qty };
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -96,7 +86,7 @@ export function ProjectForm({ open, onOpenChange, onSubmit, materials, initialDa
       name: projectName,
       description,
       status: "planning",
-      materials: selectedMaterials,
+      materials: getSelectedMaterials(),
       laborCost,
       markup,
     });
@@ -104,10 +94,11 @@ export function ProjectForm({ open, onOpenChange, onSubmit, materials, initialDa
     setDescription("");
     setLaborCost(0);
     setMarkup(50);
-    setSelectedMaterials([]);
+    setQuantities({});
     onOpenChange(false);
   };
 
+  const selectedMaterials = getSelectedMaterials();
   const materialCost = selectedMaterials.reduce((sum, pm) => sum + pm.totalCost, 0);
   const subtotal = materialCost + laborCost;
   const markupAmount = subtotal * (markup / 100);
@@ -168,35 +159,32 @@ export function ProjectForm({ open, onOpenChange, onSubmit, materials, initialDa
           <div className="border-t border-border pt-4">
             <h4 className="font-medium mb-3">Materials for this Project</h4>
             <div className="space-y-3">
-              {materials.map((material) => (
-                <div key={material.id} className="flex items-center gap-3 p-3 rounded-lg border border-border">
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">{material.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {material.unit} @ ${material.unitPrice.toFixed(2)} | Available: {material.quantity}
-                    </p>
+              {materials.length === 0 ? (
+                <p className="text-muted-foreground text-center py-4">
+                  No materials in inventory. Add materials first in the Inventory tab.
+                </p>
+              ) : (
+                materials.map((material) => (
+                  <div key={material.id} className="flex items-center gap-3 p-3 rounded-lg border border-border">
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">{material.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {material.unit} @ ${material.unitPrice.toFixed(2)} | Available: {material.quantity}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        min="0"
+                        placeholder="Qty"
+                        className="w-20"
+                        value={quantities[material.id] || ""}
+                        onChange={(e) => handleQuantityChange(material.id, e.target.value)}
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="number"
-                      min="0"
-                      placeholder="Qty"
-                      className="w-20"
-                      value={
-                        selectedMaterials.find((pm) => pm.materialId === material.id)?.quantity || ""
-                      }
-                      onChange={(e) => {
-                        const qty = parseInt(e.target.value) || 0;
-                        if (qty > 0) {
-                          addMaterialToProject(material, qty);
-                        } else {
-                          removeMaterial(material.id);
-                        }
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
 
