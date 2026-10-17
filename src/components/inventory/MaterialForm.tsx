@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -26,10 +26,26 @@ interface MaterialFormProps {
   initialData?: Material | null;
 }
 
+const emptyForm: Omit<Material, "id" | "createdAt" | "updatedAt"> = {
+  name: "",
+  category: "paper",
+  sku: "",
+  unit: "",
+  quantity: 0,
+  unitPrice: 0,
+  lowStockThreshold: 5,
+  supplier: "",
+  description: "",
+};
+
 export function MaterialForm({ open, onOpenChange, onSubmit, initialData }: MaterialFormProps) {
-  const [formData, setFormData] = useState<Omit<Material, "id" | "createdAt" | "updatedAt">>(
-    initialData
-      ? {
+  const [formData, setFormData] = useState<Omit<Material, "id" | "createdAt" | "updatedAt">>(emptyForm);
+
+  // Reset form when dialog opens or initialData changes
+  useEffect(() => {
+    if (open) {
+      if (initialData) {
+        setFormData({
           name: initialData.name,
           category: initialData.category,
           sku: initialData.sku,
@@ -39,23 +55,17 @@ export function MaterialForm({ open, onOpenChange, onSubmit, initialData }: Mate
           lowStockThreshold: initialData.lowStockThreshold,
           supplier: initialData.supplier,
           description: initialData.description,
-        }
-      : {
-          name: "",
-          category: "paper",
-          sku: "",
-          unit: "",
-          quantity: 0,
-          unitPrice: 0,
-          lowStockThreshold: 5,
-          supplier: "",
-          description: "",
-        }
-  );
+        });
+      } else {
+        setFormData(emptyForm);
+      }
+    }
+  }, [open, initialData]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(formData);
+    setFormData(emptyForm);
     onOpenChange(false);
   };
 

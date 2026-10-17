@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -28,14 +28,39 @@ interface ProjectFormProps {
   initialData?: Project | null;
 }
 
+const emptyProject = {
+  name: "",
+  description: "",
+  laborCost: 0,
+  markup: 50,
+  materials: [] as ProjectMaterial[],
+};
+
 export function ProjectForm({ open, onOpenChange, onSubmit, materials, initialData }: ProjectFormProps) {
-  const [projectName, setProjectName] = useState(initialData?.name || "");
-  const [description, setDescription] = useState(initialData?.description || "");
-  const [laborCost, setLaborCost] = useState(initialData?.laborCost || 0);
-  const [markup, setMarkup] = useState(initialData?.markup || 50);
-  const [selectedMaterials, setSelectedMaterials] = useState<ProjectMaterial[]>(
-    initialData?.materials || []
-  );
+  const [projectName, setProjectName] = useState("");
+  const [description, setDescription] = useState("");
+  const [laborCost, setLaborCost] = useState(0);
+  const [markup, setMarkup] = useState(50);
+  const [selectedMaterials, setSelectedMaterials] = useState<ProjectMaterial[]>([]);
+
+  // Reset form when dialog opens or initialData changes
+  useEffect(() => {
+    if (open) {
+      if (initialData) {
+        setProjectName(initialData.name);
+        setDescription(initialData.description || "");
+        setLaborCost(initialData.laborCost);
+        setMarkup(initialData.markup);
+        setSelectedMaterials(initialData.materials);
+      } else {
+        setProjectName("");
+        setDescription("");
+        setLaborCost(0);
+        setMarkup(50);
+        setSelectedMaterials([]);
+      }
+    }
+  }, [open, initialData]);
 
   const addMaterialToProject = (material: Material, quantity: number) => {
     const existing = selectedMaterials.find((pm) => pm.materialId === material.id);
@@ -65,18 +90,6 @@ export function ProjectForm({ open, onOpenChange, onSubmit, materials, initialDa
     setSelectedMaterials((prev) => prev.filter((pm) => pm.materialId !== materialId));
   };
 
-  const updateMaterialQuantity = (materialId: string, quantity: number) => {
-    const material = materials.find((m) => m.id === materialId);
-    if (!material) return;
-    setSelectedMaterials((prev) =>
-      prev.map((pm) =>
-        pm.materialId === materialId
-          ? { ...pm, quantity, totalCost: quantity * material.unitPrice }
-          : pm
-      )
-    );
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit({
@@ -87,6 +100,11 @@ export function ProjectForm({ open, onOpenChange, onSubmit, materials, initialDa
       laborCost,
       markup,
     });
+    setProjectName("");
+    setDescription("");
+    setLaborCost(0);
+    setMarkup(50);
+    setSelectedMaterials([]);
     onOpenChange(false);
   };
 
