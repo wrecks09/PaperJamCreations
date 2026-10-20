@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useInventory } from "@/hooks/useInventory";
+import { useInventoryContext } from "@/hooks/useInventoryContext";
 import { MaterialForm } from "@/components/inventory/MaterialForm";
 import { MaterialsTable } from "@/components/inventory/MaterialsTable";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { Plus } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 
 export default function Inventory() {
-  const { materials, addMaterial, updateMaterial, deleteMaterial } = useInventory();
+  const { materials, addMaterial, updateMaterial, deleteMaterial } = useInventoryContext();
   const [formOpen, setFormOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<string | null>(null);
 

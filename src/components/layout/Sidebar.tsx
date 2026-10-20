@@ -58,7 +58,7 @@ export function Sidebar() {
             <Printer className="w-5 h-5 text-primary-foreground" />
           </div>
           {!collapsed && (
-            <span className="font-bold text-lg">PrintStock</span>
+            <span className="font-bold text-lg">PJC</span>
           )}
         </div>
         <Button

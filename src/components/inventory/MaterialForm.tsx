@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Material, MaterialCategory, categoryLabels } from "@/types/inventory";
+import { Material, MaterialCategory, Unit, categoryLabels, unitConversions } from "@/types/inventory";
 
 interface MaterialFormProps {
   open: boolean;
@@ -30,7 +30,7 @@ const emptyForm: Omit<Material, "id" | "createdAt" | "updatedAt"> = {
   name: "",
   category: "paper",
   sku: "",
-  unit: "",
+  unit: "sheet",
   quantity: 0,
   unitPrice: 0,
   lowStockThreshold: 5,
@@ -41,21 +41,77 @@ const emptyForm: Omit<Material, "id" | "createdAt" | "updatedAt"> = {
 export function MaterialForm({ open, onOpenChange, onSubmit, initialData }: MaterialFormProps) {
   const [formData, setFormData] = useState<Omit<Material, "id" | "createdAt" | "updatedAt">>(emptyForm);
 
+  // Calculate base unit conversion for display
+  const [baseUnit, setBaseUnit] = useState<Unit>("sheet");
+  const [conversionFactor, setConversionFactor] = useState<number>(1);
+  const [baseUnitQuantity, setBaseUnitQuantity] = useState<number>(0);
+
+  useEffect(() => {
+    try {
+      // Safely access unitConversions
+      if (formData.unit && unitConversions && typeof unitConversions === 'object') {
+        // Check if the unit exists in our conversions map
+        if (unitConversions.hasOwnProperty(formData.unit)) {
+          const conversion = unitConversions[formData.unit as Unit];
+          setBaseUnit(conversion.baseUnit);
+          setConversionFactor(conversion.conversionFactor);
+          
+          // Safely parse quantity
+          const quantityValue = typeof formData.quantity === 'number' && !isNaN(formData.quantity)
+            ? formData.quantity
+            : 0;
+            
+          setBaseUnitQuantity(quantityValue * conversion.conversionFactor);
+        } else {
+          // Unit not found in conversions
+          setBaseUnit("sheet");
+          setConversionFactor(1);
+          const quantityValue = typeof formData.quantity === 'number' && !isNaN(formData.quantity)
+            ? formData.quantity
+            : 0;
+          setBaseUnitQuantity(quantityValue);
+        }
+      } else {
+        // Fallback if unitConversions is not available
+        setBaseUnit("sheet");
+        setConversionFactor(1);
+        const quantityValue = typeof formData.quantity === 'number' && !isNaN(formData.quantity)
+          ? formData.quantity
+          : 0;
+        setBaseUnitQuantity(quantityValue);
+      }
+    } catch (error) {
+      // Error fallback - prevents blank page
+      console.error('Error in MaterialForm useEffect:', error);
+      setBaseUnit("sheet");
+      setConversionFactor(1);
+      const quantityValue = typeof formData.quantity === 'number' && !isNaN(formData.quantity)
+        ? formData.quantity
+        : 0;
+      setBaseUnitQuantity(quantityValue);
+    }
+  }, [formData.unit, formData.quantity, unitConversions]);
+
   // Reset form when dialog opens or initialData changes
   useEffect(() => {
     if (open) {
       if (initialData) {
-        setFormData({
-          name: initialData.name,
-          category: initialData.category,
-          sku: initialData.sku,
-          unit: initialData.unit,
-          quantity: initialData.quantity,
-          unitPrice: initialData.unitPrice,
-          lowStockThreshold: initialData.lowStockThreshold,
-          supplier: initialData.supplier,
-          description: initialData.description,
-        });
+        try {
+          setFormData({
+            name: initialData.name ?? "",
+            category: initialData.category ?? "paper",
+            sku: initialData.sku ?? "",
+            unit: initialData.unit ?? "sheet",
+            quantity: typeof initialData.quantity === 'number' ? initialData.quantity : 0,
+            unitPrice: typeof initialData.unitPrice === 'number' ? initialData.unitPrice : 0,
+            lowStockThreshold: typeof initialData.lowStockThreshold === 'number' ? initialData.lowStockThreshold : 5,
+            supplier: initialData.supplier ?? "",
+            description: initialData.description ?? "",
+          });
+        } catch (error) {
+          console.error('Error setting initial data:', error);
+          setFormData(emptyForm);
+        }
       } else {
         setFormData(emptyForm);
       }
@@ -64,7 +120,11 @@ export function MaterialForm({ open, onOpenChange, onSubmit, initialData }: Mate
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    try {
+      onSubmit(formData);
+    } catch (error) {
+      console.error('Error submitting form:', error);
+    }
     setFormData(emptyForm);
     onOpenChange(false);
   };
@@ -73,7 +133,11 @@ export function MaterialForm({ open, onOpenChange, onSubmit, initialData }: Mate
     field: K,
     value: Omit<Material, "id" | "createdAt" | "updatedAt">[K]
   ) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    try {
+      setFormData((prev) => ({ ...prev, [field]: value }));
+    } catch (error) {
+      console.error('Error updating field:', error);
+    }
   };
 
   return (
@@ -88,7 +152,7 @@ export function MaterialForm({ open, onOpenChange, onSubmit, initialData }: Mate
               <Label htmlFor="name">Material Name *</Label>
               <Input
                 id="name"
-                value={formData.name}
+                value={formData.name ?? ''}
                 onChange={(e) => updateField("name", e.target.value)}
                 placeholder="e.g., Gloss Paper 130gsm"
                 required
@@ -97,7 +161,7 @@ export function MaterialForm({ open, onOpenChange, onSubmit, initialData }: Mate
             <div className="space-y-2">
               <Label htmlFor="category">Category *</Label>
               <Select
-                value={formData.category}
+                value={formData.category ?? 'paper'}
                 onValueChange={(value) => updateField("category", value as MaterialCategory)}
               >
                 <SelectTrigger>
@@ -119,20 +183,31 @@ export function MaterialForm({ open, onOpenChange, onSubmit, initialData }: Mate
               <Label htmlFor="sku">SKU</Label>
               <Input
                 id="sku"
-                value={formData.sku}
+                value={formData.sku ?? ''}
                 onChange={(e) => updateField("sku", e.target.value)}
                 placeholder="Optional SKU code"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="unit">Unit of Measure *</Label>
-              <Input
-                id="unit"
-                value={formData.unit}
-                onChange={(e) => updateField("unit", e.target.value)}
-                placeholder="e.g., ream, bottle, sheet"
-                required
-              />
+              <Select
+                value={formData.unit ?? 'sheet'}
+                onValueChange={(value) => updateField("unit", value as Unit)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sheet">Sheet</SelectItem>
+                  <SelectItem value="ream">Ream (500 sheets)</SelectItem>
+                  <SelectItem value="bottle">Bottle</SelectItem>
+                  <SelectItem value="roll">Roll</SelectItem>
+                  <SelectItem value="packet">Packet</SelectItem>
+                  <SelectItem value="box">Box</SelectItem>
+                  <SelectItem value="liter">Liter</SelectItem>
+                  <SelectItem value="meter">Meter</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -143,22 +218,48 @@ export function MaterialForm({ open, onOpenChange, onSubmit, initialData }: Mate
                 id="quantity"
                 type="number"
                 min="0"
-                value={formData.quantity}
-                onChange={(e) => updateField("quantity", parseInt(e.target.value) || 0)}
+                value={formData.quantity ?? 0}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  let parsed = parseInt(value);
+                  if (isNaN(parsed)) {
+                    parsed = 0;
+                  }
+                  updateField("quantity", parsed);
+                }}
                 required
               />
+              {/* Safely display conversion */}
+              {(conversionFactor ?? 1) > 1 && (
+                <p className="text-xs text-muted-foreground">
+                  = {(baseUnitQuantity ?? 0).toFixed(2)} {(baseUnit ?? 'sheet')}s
+                </p>
+              )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="unitPrice">Unit Price ($) *</Label>
+              <Label htmlFor="unitPrice">Unit Price (₱) *</Label>
               <Input
                 id="unitPrice"
                 type="number"
                 min="0"
                 step="0.01"
-                value={formData.unitPrice}
-                onChange={(e) => updateField("unitPrice", parseFloat(e.target.value) || 0)}
+                value={formData.unitPrice ?? 0}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  let parsed = parseFloat(value);
+                  if (isNaN(parsed)) {
+                    parsed = 0;
+                  }
+                  updateField("unitPrice", parsed);
+                }}
                 required
               />
+              {/* Safely display price per base unit */}
+              {(conversionFactor ?? 1) !== 1 && (
+                <p className="text-xs text-muted-foreground">
+                  ₱{((formData.unitPrice ?? 0) / (conversionFactor ?? 1)).toFixed(4)} per {(baseUnit ?? 'sheet')}
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="lowStockThreshold">Low Stock Alert</Label>
@@ -166,8 +267,15 @@ export function MaterialForm({ open, onOpenChange, onSubmit, initialData }: Mate
                 id="lowStockThreshold"
                 type="number"
                 min="0"
-                value={formData.lowStockThreshold}
-                onChange={(e) => updateField("lowStockThreshold", parseInt(e.target.value) || 0)}
+                value={formData.lowStockThreshold ?? 5}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  let parsed = parseInt(value);
+                  if (isNaN(parsed)) {
+                    parsed = 0;
+                  }
+                  updateField("lowStockThreshold", parsed);
+                }}
               />
             </div>
           </div>
@@ -176,7 +284,7 @@ export function MaterialForm({ open, onOpenChange, onSubmit, initialData }: Mate
             <Label htmlFor="supplier">Supplier</Label>
             <Input
               id="supplier"
-              value={formData.supplier}
+              value={formData.supplier ?? ''}
               onChange={(e) => updateField("supplier", e.target.value)}
               placeholder="Supplier name"
             />
@@ -186,7 +294,7 @@ export function MaterialForm({ open, onOpenChange, onSubmit, initialData }: Mate
             <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
-              value={formData.description}
+              value={formData.description ?? ''}
               onChange={(e) => updateField("description", e.target.value)}
               placeholder="Optional description"
               rows={2}

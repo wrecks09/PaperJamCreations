@@ -1,4 +1,4 @@
-import { useInventory } from "@/hooks/useInventory";
+import { useInventoryContext } from "@/hooks/useInventoryContext";
 import { StatCard } from "@/components/inventory/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -6,7 +6,7 @@ import { Package, AlertTriangle, FolderKanban, DollarSign } from "lucide-react";
 import { categoryColors, categoryLabels } from "@/types/inventory";
 
 export default function Dashboard() {
-  const { materials, projects } = useInventory();
+  const { materials, projects } = useInventoryContext();
 
   const totalMaterials = materials.length;
   const totalInventoryValue = materials.reduce(
@@ -16,7 +16,7 @@ export default function Dashboard() {
   const lowStockItems = materials.filter(
     (m) => m.quantity <= m.lowStockThreshold
   ).length;
-  const activeProjects = projects.filter((p) => p.status !== "completed").length;
+  const activeProjects = projects.filter((p) => p.status !== "completed" && p.status !== "cancelled").length;
 
   const categoryCounts = materials.reduce((acc, m) => {
     acc[m.category] = (acc[m.category] || 0) + 1;
@@ -42,7 +42,7 @@ export default function Dashboard() {
         />
         <StatCard
           title="Inventory Value"
-          value={`$${totalInventoryValue.toFixed(2)}`}
+          value={`₱${totalInventoryValue.toFixed(2)}`}
           icon={<DollarSign className="w-5 h-5" />}
         />
         <StatCard

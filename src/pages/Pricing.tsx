@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useInventory } from "@/hooks/useInventory";
+import { useInventoryContext } from "@/hooks/useInventoryContext";
 import { ProjectForm } from "@/components/pricing/ProjectForm";
 import { ProjectsTable } from "@/components/pricing/ProjectsTable";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { Plus } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 
 export default function Pricing() {
-  const { projects, materials, addProject, updateProject, deleteProject, calculateProjectCost } = useInventory();
+  const { projects, materials, addProject, updateProject, deleteProject, calculateProjectCost } = useInventoryContext();
   const [formOpen, setFormOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<string | null>(null);
 
