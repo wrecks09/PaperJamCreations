@@ -135,6 +135,7 @@ export function useSupabaseInventory() {
       await Promise.all([fetchMaterials(), fetchProjects()]);
       setLoading(false);
     };
+
     loadData();
 
     // Subscribe to realtime changes
@@ -171,6 +172,10 @@ export function useSupabaseInventory() {
       .single();
 
     if (error) throw error;
+
+    // Immediately refetch materials to ensure UI updates without requiring page refresh
+    await fetchMaterials();
+
     return transformMaterial(newMaterial);
   }, []);
 
@@ -186,7 +191,7 @@ export function useSupabaseInventory() {
     if (data.unitPrice !== undefined) updateData.unit_price = data.unitPrice;
     if (data.unit !== undefined) updateData.unit = data.unit;
     if (data.quantity !== undefined) updateData.quantity = data.quantity;
-    if (data.lowStockThreshold !== undefined) updateData.low_stock_threshold = data.lowStockThreshold;
+    if (data.lowStockThreshold !== undefined) updateData.low_stock_threshold = data.low_stock_threshold;
 
     const { error } = await supabase.from("materials").update(updateData).eq("id", id);
     if (error) throw error;
@@ -216,6 +221,9 @@ export function useSupabaseInventory() {
     if (newProject.status === "in-progress" || newProject.status === "completed") {
       await deductMaterials(newProject.materials);
     }
+
+    // Immediately refetch projects to ensure UI updates without requiring page refresh
+    await fetchProjects();
 
     return transformProject(newProject);
   }, []);
