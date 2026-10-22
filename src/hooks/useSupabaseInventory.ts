@@ -207,26 +207,6 @@ export function useSupabaseInventory() {
     [materials]
   );
 
-  const addProject = useCallback(async (data: Omit<Project, "id" | "createdAt" | "updatedAt" | "completedAt">) => {
-    const insertData = projectToInsert(data);
-    const { data: newProject, error } = await supabase
-      .from("projects")
-      .insert(insertData)
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    // Deduct stock if project is initialized in-progress or completed
-    if (newProject.status === "in-progress" || newProject.status === "completed") {
-      await deductMaterials(newProject.materials);
-    }
-
-    // Immediately refetch projects to ensure UI updates without requiring page refresh
-    await fetchProjects();
-
-    return transformProject(newProject);
-  }, []);
 
   const updateProject = useCallback(async (id: string, data: Partial<Project>) => {
     // Get existing project first
@@ -272,6 +252,22 @@ export function useSupabaseInventory() {
     const { error } = await supabase.from("projects").update(updateData).eq("id", id);
     if (error) throw error;
   }, [projects]);
+
+  const addProject = useCallback(async (data: Omit<Project, "id" | "createdAt" | "updatedAt" | "completedAt">) => {
+    const insertData = projectToInsert(data);
+    const { data: newProject, error } = await supabase
+      .from("projects")
+      .insert(insertData)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // Immediately refetch projects to ensure UI updates without requiring page refresh
+    await fetchProjects();
+
+    return transformProject(newProject);
+  }, []);
 
   const deleteProject = useCallback(async (id: string) => {
     const { error } = await supabase.from("projects").delete().eq("id", id);

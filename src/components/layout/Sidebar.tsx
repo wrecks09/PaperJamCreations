@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   Package,
   FolderKanban,
@@ -12,6 +13,7 @@ import {
   ChevronLeft,
   Menu,
 } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const navigation = [
   {
@@ -41,9 +43,75 @@ const navigation = [
   },
 ];
 
+function SidebarContent({
+  collapsed,
+}: {
+  collapsed: boolean;
+}) {
+  const location = useLocation();
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex h-16 items-center justify-center px-4 border-b border-border">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+            <Printer className="w-5 h-5 text-primary-foreground" />
+          </div>
+          {!collapsed && (
+            <span className="font-bold text-lg">PJC</span>
+          )}
+        </div>
+      </div>
+
+      <ScrollArea className="h-[calc(100vh -4rem)]">
+        <nav className="p-2 space-y-1">
+          {navigation.map((item) => {
+            const isActive = location.pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                to={item.href}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                  isActive
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                )}
+              >
+                <item.icon className="w-5 h-5 flex-shrink-0" />
+                {!collapsed && <span>{item.name}</span>}
+              </Link>
+            );
+          })}
+        </nav>
+      </ScrollArea>
+    </div>
+  );
+}
+
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
-  const location = useLocation();
+  const isMobile = useIsMobile();
+
+  if (isMobile) {
+    return (
+      <Sheet>
+        <SheetTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="fixed left-4 top-4 z-50 md:hidden"
+          >
+            <Menu className="w-5 h-5" />
+            <span className="sr-only">Open menu</span>
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="left" className="w-64 p-0">
+          <SidebarContent collapsed={false} />
+        </SheetContent>
+      </Sheet>
+    );
+  }
 
   return (
     <aside
