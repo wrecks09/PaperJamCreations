@@ -195,7 +195,10 @@ export function useSupabaseInventory() {
 
     const { error } = await supabase.from("materials").update(updateData).eq("id", id);
     if (error) throw error;
-  }, [materials]);
+
+    // Immediately refetch materials to ensure UI updates without requiring page refresh
+    await fetchMaterials();
+  }, [materials, fetchMaterials]);
 
   const deleteMaterial = useCallback(async (id: string) => {
     const { error } = await supabase.from("materials").delete().eq("id", id);
@@ -254,7 +257,10 @@ export function useSupabaseInventory() {
 
     const { error } = await supabase.from("projects").update(updateData).eq("id", id);
     if (error) throw error;
-  }, [projects]);
+
+    // Immediately refetch projects to ensure UI updates without requiring page refresh
+    await fetchProjects();
+  }, [projects, fetchProjects]);
 
   const addProject = useCallback(async (data: Omit<Project, "id" | "createdAt" | "updatedAt" | "completedAt">) => {
     const insertData = projectToInsert(data);
