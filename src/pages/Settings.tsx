@@ -188,6 +188,7 @@ export default function Settings() {
                   max="100"
                   value={defaultMarkup}
                   onChange={(e) => setDefaultMarkup(parseInt(e.target.value) || 0)}
+                  onFocus={(e) => e.target.select()}
                 />
               </div>
             </div>

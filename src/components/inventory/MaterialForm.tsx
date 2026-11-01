@@ -227,6 +227,7 @@ export function MaterialForm({ open, onOpenChange, onSubmit, initialData }: Mate
                   }
                   updateField("quantity", parsed);
                 }}
+                onFocus={(e) => e.target.select()}
                 required
               />
               {/* Safely display conversion */}
@@ -252,6 +253,7 @@ export function MaterialForm({ open, onOpenChange, onSubmit, initialData }: Mate
                   }
                   updateField("unitPrice", parsed);
                 }}
+                onFocus={(e) => e.target.select()}
                 required
               />
               {/* Safely display price per base unit */}
@@ -276,6 +278,7 @@ export function MaterialForm({ open, onOpenChange, onSubmit, initialData }: Mate
                   }
                   updateField("lowStockThreshold", parsed);
                 }}
+                onFocus={(e) => e.target.select()}
               />
             </div>
           </div>

@@ -246,6 +246,7 @@ export function ProjectForm({ open, onOpenChange, onSubmit, materials, initialDa
                 min="0"
                 value={markup}
                 onChange={(e) => setMarkup(parseFloat(e.target.value) || 0)}
+                onFocus={(e) => e.target.select()}
               />
             </div>
           </div>
@@ -313,6 +314,7 @@ export function ProjectForm({ open, onOpenChange, onSubmit, materials, initialDa
                 step="0.01"
                 value={laborCost}
                 onChange={(e) => setLaborCost(parseFloat(e.target.value) || 0)}
+                onFocus={(e) => e.target.select()}
               />
             </div>
             <div className="space-y-2">
@@ -324,6 +326,7 @@ export function ProjectForm({ open, onOpenChange, onSubmit, materials, initialDa
                 step="0.01"
                 value={overheadCost}
                 onChange={(e) => setOverheadCost(parseFloat(e.target.value) || 0)}
+                onFocus={(e) => e.target.select()}
               />
             </div>
           </div>
@@ -337,6 +340,7 @@ export function ProjectForm({ open, onOpenChange, onSubmit, materials, initialDa
                 min="0"
                 value={pageCount}
                 onChange={(e) => setPageCount(parseInt(e.target.value) || 0)}
+                onFocus={(e) => e.target.select()}
                 placeholder="0"
               />
             </div>
@@ -367,6 +371,7 @@ export function ProjectForm({ open, onOpenChange, onSubmit, materials, initialDa
                 max="100"
                 value={wasteBuffer}
                 onChange={(e) => setWasteBuffer(parseFloat(e.target.value) || 0)}
+                onFocus={(e) => e.target.select()}
               />
             </div>
           </div>
@@ -422,6 +427,7 @@ export function ProjectForm({ open, onOpenChange, onSubmit, materials, initialDa
                           className="w-20"
                           value={quantities[material.id] ?? 0}
                           onChange={(e) => handleQuantityChange(material.id, e.target.value)}
+                          onFocus={(e) => e.target.select()}
                         />
                       </div>
                     </div>
